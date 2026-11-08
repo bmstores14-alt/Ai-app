@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import OpenAI from "openai";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -10,13 +9,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "30kb" }));
-
-// ഫയലുകൾ ഒരേ ഫോൾഡറിൽ നിന്ന് നേരിട്ട് എടുക്കാനുള്ള മാറ്റം
 app.use(express.static(__dirname));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 12,
+  limit: 20,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many requests. Please try again in 15 minutes." }
@@ -25,8 +22,9 @@ app.use("/api/generate", limiter);
 
 app.post("/api/generate", async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(503).json({ error: "AI is not configured yet. Add OPENAI_API_KEY to your .env file." });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: "AI is not configured. Add GEMINI_API_KEY to your environment variables." });
     }
 
     const { business, product, offer, audience, language, tone, platforms, details } = req.body || {};
@@ -58,25 +56,34 @@ For EACH selected platform, produce a clearly separated section:
 Only include sections for selected platforms.
 Use natural local-market language and suitable emojis sparingly.
 Do not invent discounts, guarantees, product features, stock levels, testimonials, contact details or claims.
-If price/offer is missing, do not make one up.
-Avoid misleading income, health or performance claims.
-End with a brief note reminding the user to verify prices, dates and offer terms before publishing.
 `;
 
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      input: prompt
+    // Google Gemini Free API Call
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
     });
 
-    res.json({ text: response.output_text || "No text was returned. Please try again." });
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || "Gemini API Error");
+    }
+
+    const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    res.json({ text: textOutput || "No text was returned. Please try again." });
+
   } catch (err) {
     console.error("Generation error:", err?.message || err);
-    res.status(500).json({ error: "Could not generate the advertisement. Check your API setup and try again." });
+    res.status(500).json({ error: "Could not generate the advertisement. Check your Gemini API setup and try again." });
   }
 });
 
-// index.html നേരിട്ട് തുറക്കാനുള്ള മാറ്റം
 app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
 
 app.listen(port, () => console.log(`AI Marketing Studio running at http://localhost:${port}`));
