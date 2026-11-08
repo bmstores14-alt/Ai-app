@@ -14,7 +14,7 @@ app.use(express.static(__dirname));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: 25,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many requests. Please try again in 15 minutes." }
@@ -25,7 +25,7 @@ app.post("/api/generate", async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(503).json({ error: "AI is not configured. Add GEMINI_API_KEY to your environment variables." });
+      return res.status(503).json({ error: "AI is not configured. Add GEMINI_API_KEY to environment variables." });
     }
 
     const { business, product, offer, audience, language, tone, platforms, details } = req.body || {};
@@ -59,37 +59,48 @@ Use natural local-market language and suitable emojis sparingly.
 Do not invent discounts, guarantees, product features, stock levels, testimonials, contact details or claims.
 `;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-    
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
-    });
+    // തിരക്ക് കുറവുള്ള മോഡലുകൾ ഫ്രീയായി മാറിമാറി ഉപയോഗിക്കാനുള്ള സംവിധാനം
+    const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+    let textOutput = "";
+    let lastError = null;
 
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error.message || "Gemini API Error");
+    for (const model of models) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+          textOutput = data.candidates[0].content.parts[0].text;
+          break; // ഉത്തരം കിട്ടിയാൽ ലൂപ്പ് നിർത്തുന്നു
+        } else if (data.error) {
+          lastError = data.error.message;
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
     }
 
-    const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textOutput) {
+      throw new Error(lastError || "Google AI is currently busy. Please try again in a few seconds.");
+    }
 
-    // സൗജന്യ AI ഫോട്ടോ ഉണ്ടാക്കാനുള്ള കോഡ് (Pollinations AI)
-    const imagePrompt = `${clean(product)}, professional commercial advertising product photography, cinematic lighting, ultra high quality, 4k`;
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
+    // വേഗത്തിൽ ലോഡ് ആകുന്ന AI ഫോട്ടോ ലിങ്ക്
+    const safeProduct = encodeURIComponent(clean(product) + " professional advertisement commercial product photography 4k");
+    const imageUrl = `https://image.pollinations.ai/prompt/${safeProduct}?width=800&height=600&nologo=true&seed=${Date.now()}`;
 
-    // എഴുത്തും ഫോട്ടോയും ഒരുമിച്ച് അയക്കുന്നു
-    res.json({ 
-      text: textOutput || "No text was returned. Please try again.",
-      imageUrl: imageUrl 
+    res.json({
+      text: textOutput,
+      imageUrl: imageUrl
     });
 
   } catch (err) {
     console.error("Generation error:", err?.message || err);
-    res.status(500).json({ error: "Could not generate the advertisement. Check your Gemini API setup and try again." });
+    res.status(500).json({ error: err?.message || "Could not generate advertisement. Please try again." });
   }
 });
 
