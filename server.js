@@ -8,9 +8,7 @@ const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 3000;
 
-// Render proxy സപ്പോർട്ട്
 app.set("trust proxy", 1);
-
 app.use(express.json({ limit: "30kb" }));
 app.use(express.static(__dirname));
 
@@ -61,7 +59,6 @@ Use natural local-market language and suitable emojis sparingly.
 Do not invent discounts, guarantees, product features, stock levels, testimonials, contact details or claims.
 `;
 
-    // ഗൂഗിൾ നിർദ്ദേശിച്ച ഏറ്റവും പുതിയ gemini-3.8-flash മോഡൽ
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(geminiUrl, {
@@ -79,7 +76,16 @@ Do not invent discounts, guarantees, product features, stock levels, testimonial
     }
 
     const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    res.json({ text: textOutput || "No text was returned. Please try again." });
+
+    // സൗജന്യ AI ഫോട്ടോ ഉണ്ടാക്കാനുള്ള കോഡ് (Pollinations AI)
+    const imagePrompt = `${clean(product)}, professional commercial advertising product photography, cinematic lighting, ultra high quality, 4k`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=1024&nologo=true`;
+
+    // എഴുത്തും ഫോട്ടോയും ഒരുമിച്ച് അയക്കുന്നു
+    res.json({ 
+      text: textOutput || "No text was returned. Please try again.",
+      imageUrl: imageUrl 
+    });
 
   } catch (err) {
     console.error("Generation error:", err?.message || err);
