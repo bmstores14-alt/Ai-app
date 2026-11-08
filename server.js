@@ -8,7 +8,7 @@ const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 3000;
 
-// Render-ലെ പ്രോക്സി വാണിംഗ് ഒഴിവാക്കാൻ
+// Render proxy സപ്പോർട്ട്
 app.set("trust proxy", 1);
 
 app.use(express.json({ limit: "30kb" }));
@@ -61,8 +61,8 @@ Use natural local-market language and suitable emojis sparingly.
 Do not invent discounts, guarantees, product features, stock levels, testimonials, contact details or claims.
 `;
 
-    // പുതിയ മോഡലായ gemini-2.5-flash ഉപയോഗിക്കുന്നു
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // ഗൂഗിൾ നിർദ്ദേശിച്ച ഏറ്റവും പുതിയ gemini-3.8-flash മോഡൽ
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(geminiUrl, {
       method: "POST",
