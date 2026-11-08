@@ -23,9 +23,11 @@ app.use("/api/generate", limiter);
 
 app.post("/api/generate", async (req, res) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const rawKey = process.env.GEMINI_API_KEY || "";
+    const apiKey = rawKey.trim(); // സ്പേസുകൾ ഒഴിവാക്കുന്നു
+
     if (!apiKey) {
-      return res.status(503).json({ error: "AI is not configured. Add GEMINI_API_KEY to environment variables." });
+      return res.status(503).json({ error: "API Key is missing. Add GEMINI_API_KEY to Render Environment." });
     }
 
     const { business, product, offer, audience, language, tone, platforms, details } = req.body || {};
@@ -59,39 +61,31 @@ Use natural local-market language and suitable emojis sparingly.
 Do not invent discounts, guarantees, product features, stock levels, testimonials, contact details or claims.
 `;
 
-    // തിരക്ക് കുറവുള്ള മോഡലുകൾ ഫ്രീയായി മാറിമാറി ഉപയോഗിക്കാനുള്ള സംവിധാനം
-    const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
-    let textOutput = "";
-    let lastError = null;
+    // ഗൂഗിൾ ലോഗ്സിൽ നേരിട്ട് ആവശ്യപ്പെട്ട gemini-3.8-flash മോഡൽ
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
 
-    for (const model of models) {
-      try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const response = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const data = await response.json();
-        
-        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-          textOutput = data.candidates[0].content.parts[0].text;
-          break; // ഉത്തരം കിട്ടിയാൽ ലൂപ്പ് നിർത്തുന്നു
-        } else if (data.error) {
-          lastError = data.error.message;
-        }
-      } catch (err) {
-        lastError = err.message;
-      }
+    const response = await fetch(geminiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || "Gemini API Error");
     }
 
+    const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!textOutput) {
-      throw new Error(lastError || "Google AI is currently busy. Please try again in a few seconds.");
+      throw new Error("No text was returned by Google AI.");
     }
 
-    // വേഗത്തിൽ ലോഡ് ആകുന്ന AI ഫോട്ടോ ലിങ്ക്
+    // പ്രൊഡക്റ്റിന്റെ ഫോട്ടോ ലിങ്ക്
     const safeProduct = encodeURIComponent(clean(product) + " professional advertisement commercial product photography 4k");
-    const imageUrl = `https://image.pollinations.ai/prompt/${safeProduct}?width=800&height=600&nologo=true&seed=${Date.now()}`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${safeProduct}?width=800&height=600&nologo=true`;
 
     res.json({
       text: textOutput,
