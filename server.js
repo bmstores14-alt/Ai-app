@@ -8,6 +8,9 @@ const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 3000;
 
+// Render-ലെ പ്രോക്സി വാണിംഗ് ഒഴിവാക്കാൻ
+app.set("trust proxy", 1);
+
 app.use(express.json({ limit: "30kb" }));
 app.use(express.static(__dirname));
 
@@ -58,8 +61,8 @@ Use natural local-market language and suitable emojis sparingly.
 Do not invent discounts, guarantees, product features, stock levels, testimonials, contact details or claims.
 `;
 
-    // Google Gemini Free API Call
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // പുതിയ മോഡലായ gemini-2.5-flash ഉപയോഗിക്കുന്നു
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(geminiUrl, {
       method: "POST",
