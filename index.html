@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Create social media advertising copy for Facebook, Instagram, YouTube and WhatsApp with AI.">
+  <title>AI Marketing Studio — Ads made simple</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-icon">✳</span><span>market<span class="brand-light">mate</span><small>AI MARKETING STUDIO</small></span></a>
+      <div class="side-label">WORKSPACE</div>
+      <a class="nav active" href="#"><span>✦</span> Create an ad</a>
+      <a class="nav muted" href="#how"><span>▤</span> How it works</a>
+      <div class="side-bottom"><div class="help-dot">?</div><div><b>Made for growing businesses</b><small>Simple tools. Better content.</small></div></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar"><div class="mobile-brand">✳ marketmate</div><div class="top-note"><span class="status-dot"></span> Your AI copywriting assistant</div><div class="lang-pill">INDIA · MULTI-LANGUAGE</div></header>
+      <section class="hero">
+        <div class="eyebrow"><span>✦</span> YOUR SOCIAL MEDIA CREATIVE PARTNER</div>
+        <h1>Make your next ad<br><span>impossible to ignore.</span></h1>
+        <p>Tell us what you sell. Get platform-ready ad copy for the places your customers scroll every day.</p>
+        <div class="platform-strip"><span>f&nbsp; Facebook</span><span>◎&nbsp; Instagram</span><span>▶&nbsp; YouTube</span><span>◉&nbsp; WhatsApp</span></div>
+      </section>
+
+      <section class="workspace">
+        <div class="form-card">
+          <div class="card-heading"><div><div class="step">STEP 01</div><h2>Tell us about your business</h2><p>A few details help the AI write a better ad.</p></div><div class="sparkle">✧</div></div>
+          <form id="adForm">
+            <label>Business or shop name <span>REQUIRED</span><input name="business" placeholder="e.g. Amina Fashion House" required maxlength="120"></label>
+            <label>What are you promoting? <span>REQUIRED</span><textarea name="product" rows="3" placeholder="e.g. New collection of cotton kurtis for everyday wear" required maxlength="500"></textarea></label>
+            <div class="two">
+              <label>Price or offer <small>Optional</small><input name="offer" placeholder="e.g. Starting at ₹499"></label>
+              <label>Target customers <small>Optional</small><input name="audience" placeholder="e.g. Women aged 20–40"></label>
+            </div>
+            <div class="two">
+              <label>Ad language<select name="language"><option>Malayalam</option><option>English</option><option>Tamil</option><option>Hindi</option><option>Kannada</option><option>Telugu</option><option>Bengali</option><option>Marathi</option><option>Gujarati</option><option>Punjabi</option><option>Hinglish</option></select></label>
+              <label>Writing style<select name="tone"><option>Friendly and persuasive</option><option>Premium and elegant</option><option>Fun and trendy</option><option>Professional</option><option>Simple and local</option></select></label>
+            </div>
+            <div class="platform-label"><div><b>Where will you publish?</b><small>Choose one or more platforms</small></div><span>STEP 02</span></div>
+            <div class="platform-options">
+              <label class="platform-choice"><input type="checkbox" name="platforms" value="Facebook" checked><span class="platform-symbol fb">f</span><span>Facebook</span><i>✓</i></label>
+              <label class="platform-choice"><input type="checkbox" name="platforms" value="Instagram" checked><span class="platform-symbol ig">◎</span><span>Instagram</span><i>✓</i></label>
+              <label class="platform-choice"><input type="checkbox" name="platforms" value="YouTube" checked><span class="platform-symbol yt">▶</span><span>YouTube</span><i>✓</i></label>
+              <label class="platform-choice"><input type="checkbox" name="platforms" value="WhatsApp" checked><span class="platform-symbol wa">◉</span><span>WhatsApp</span><i>✓</i></label>
+            </div>
+            <label>Any extra details? <small>Optional</small><textarea name="details" rows="2" placeholder="Location, product features, delivery details, contact info..." maxlength="500"></textarea></label>
+            <button class="generate" id="generateBtn" type="submit"><span>✦</span> Generate my ads <b>→</b></button>
+            <div class="privacy-note">✦ Your details are used to create this ad. Review all claims before publishing.</div>
+          </form>
+        </div>
+
+        <div class="result-card" id="resultCard">
+          <div class="result-top"><div><div class="step">YOUR CREATIVE STUDIO</div><h2>Ad results</h2></div><span class="result-icon">✧</span></div>
+          <div id="emptyState" class="empty-state"><div class="empty-art"><span>✦</span><i>✧</i><b> Aa </b></div><h3>Your next great ad starts here.</h3><p>Fill in your business details and hit generate. Your platform-ready copy will appear here.</p><div class="mini-tags"><span>Headlines</span><span>Captions</span><span>Hashtags</span><span>CTAs</span></div></div>
+          <div id="loadingState" class="loading-state" hidden><div class="loader"></div><h3>Creating your ads...</h3><p>Our AI is writing platform-specific content.</p></div>
+          <div id="errorState" class="error-state" hidden></div>
+          <div id="output" class="output" hidden></div>
+          <button id="copyBtn" class="copy-all" hidden>Copy all ad text <span>▢</span></button>
+        </div>
+      </section>
+      <section class="how" id="how"><div class="step">SIMPLE BY DESIGN</div><h2>From idea to ad in three steps.</h2><div class="how-grid"><article><b>01</b><h3>Describe your product</h3><p>Share what you sell, your offer and who you want to reach.</p></article><article><b>02</b><h3>Choose your platforms</h3><p>Pick Facebook, Instagram, YouTube or WhatsApp.</p></article><article><b>03</b><h3>Copy and publish</h3><p>Review the AI copy, make it yours, then publish it.</p></article></div></section>
+      <footer>© 2026 Marketmate AI · Built for small businesses in India <span>AI-generated content should be reviewed before publishing.</span></footer>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
