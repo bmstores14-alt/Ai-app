@@ -46,39 +46,54 @@ Offer: ${clean(offer) || "Special Offer"}
 Target Audience: ${clean(audience) || "General"}
 Details: ${clean(details)}
 
-Respond ONLY with a valid raw JSON object (strictly valid JSON, no markdown around it) with these exact keys:
+Respond ONLY with a valid raw JSON object with these exact keys:
 {
   "headline": "Short, catchy headline in ${clean(language)} (max 8 words)",
   "offerBadge": "${clean(offer) || "പ്രത്യേക ഓഫർ!"}",
-  "point1": "First short benefit with tick in ${clean(language)}",
-  "point2": "Second short benefit with tick in ${clean(language)}",
-  "point3": "Third short benefit with tick in ${clean(language)}",
+  "point1": "First short benefit in ${clean(language)}",
+  "point2": "Second short benefit in ${clean(language)}",
+  "point3": "Third short benefit in ${clean(language)}",
   "cta": "Call to action in ${clean(language)} (e.g. ഇപ്പോൾ തന്നെ ഓർഡർ ചെയ്യൂ!)",
   "caption": "Full social media caption with emojis and hashtags in ${clean(language)}"
 }
 `;
 
-    // Groq Ultra-fast API Call
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" }
-      })
-    });
+    // ഫ്രീ പ്ലാനിൽ സപ്പോർട്ട് ചെയ്യുന്ന മോഡലുകൾ മാറിമാറി ശ്രമിക്കുന്നു
+    const models = ["llama-3.1-8b-instant", "openai/gpt-oss-20b", "gemma2-9b-it"];
+    let content = "";
+    let lastError = null;
 
-    const data = await response.json();
+    for (const model of models) {
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [{ role: "user", content: prompt }],
+            response_format: { type: "json_object" }
+          })
+        });
 
-    if (data.error) {
-      throw new Error(data.error.message || "Groq API Error");
+        const data = await response.json();
+        if (data.choices && data.choices[0]?.message?.content) {
+          content = data.choices[0].message.content;
+          break; // ഉത്തരം കിട്ടിയാൽ നിർത്തുന്നു
+        } else if (data.error) {
+          lastError = data.error.message;
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
     }
 
-    const content = data.choices?.[0]?.message?.content || "{}";
+    if (!content) {
+      throw new Error(lastError || "Could not get response from Groq.");
+    }
+
     let posterData;
     try {
       posterData = JSON.parse(content);
