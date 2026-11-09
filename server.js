@@ -14,7 +14,7 @@ app.use(express.static(__dirname));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 25,
+  limit: 30,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { error: "Too many requests. Please try again in 15 minutes." }
@@ -23,11 +23,11 @@ app.use("/api/generate", limiter);
 
 app.post("/api/generate", async (req, res) => {
   try {
-    const rawKey = process.env.GEMINI_API_KEY || "";
+    const rawKey = process.env.GROQ_API_KEY || "";
     const apiKey = rawKey.trim();
 
     if (!apiKey) {
-      return res.status(503).json({ error: "API Key missing. Check Render Environment." });
+      return res.status(503).json({ error: "Groq API Key is missing. Add GROQ_API_KEY to Render Environment." });
     }
 
     const { business, product, offer, audience, language, tone, platforms, details } = req.body || {};
@@ -37,64 +37,66 @@ app.post("/api/generate", async (req, res) => {
 
     const clean = v => String(v || "").trim().slice(0, 500);
 
-    // AI-യോട് പോസ്റ്ററിന് ആവശ്യമായ വിവരങ്ങൾ പ്രത്യേകം ചോദിക്കുന്നു
     const prompt = `
-You are an expert Indian marketing designer and copywriter.
-Create high-converting social media advertisement content in ${clean(language)}.
+You are an expert Indian social media marketing designer and advertising copywriter.
+Create a high-converting, attractive advertisement in ${clean(language)}.
 Business: ${clean(business)}
 Product/Service: ${clean(product)}
 Offer: ${clean(offer) || "Special Offer"}
 Target Audience: ${clean(audience) || "General"}
 Details: ${clean(details)}
 
-Respond ONLY with a valid raw JSON object (no markdown, no backticks, no extra text) with these exact keys:
+Respond ONLY with a valid raw JSON object (strictly valid JSON, no markdown around it) with these exact keys:
 {
-  "headline": "A short, catchy main headline in ${clean(language)} (max 8 words)",
+  "headline": "Short, catchy headline in ${clean(language)} (max 8 words)",
   "offerBadge": "${clean(offer) || "പ്രത്യേക ഓഫർ!"}",
-  "point1": "First short benefit in ${clean(language)} (with action)",
-  "point2": "Second short benefit in ${clean(language)}",
-  "point3": "Third short benefit in ${clean(language)}",
+  "point1": "First short benefit with tick in ${clean(language)}",
+  "point2": "Second short benefit with tick in ${clean(language)}",
+  "point3": "Third short benefit with tick in ${clean(language)}",
   "cta": "Call to action in ${clean(language)} (e.g. ഇപ്പോൾ തന്നെ ഓർഡർ ചെയ്യൂ!)",
-  "caption": "Full social media caption with emojis and hashtags for Instagram/Facebook in ${clean(language)}"
+  "caption": "Full social media caption with emojis and hashtags in ${clean(language)}"
 }
 `;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-
-    const response = await fetch(geminiUrl, {
+    // Groq Ultra-fast API Call
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" }
+      })
     });
 
     const data = await response.json();
 
     if (data.error) {
-      throw new Error(data.error.message || "Gemini Error");
+      throw new Error(data.error.message || "Groq API Error");
     }
 
-    let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    // JSON ക്ലീൻ ചെയ്യുന്നു
-    rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
-
+    const content = data.choices?.[0]?.message?.content || "{}";
     let posterData;
     try {
-      posterData = JSON.parse(rawText);
+      posterData = JSON.parse(content);
     } catch {
       posterData = {
         headline: clean(product) + " - മികച്ച ഓഫറുകൾ!",
         offerBadge: clean(offer) || "പ്രത്യേക ഓഫർ!",
-        point1: "മികച്ച ക്വാളിറ്റി ഉൽപ്പന്നങ്ങൾ",
+        point1: "മികച്ച ഗുണമേന്മയുള്ള ഉൽപ്പന്നങ്ങൾ",
         point2: "വേഗത്തിലുള്ള ഡെലിവറി",
         point3: "വിശ്വസനീയമായ സേവനം",
         cta: "ഇപ്പോൾ തന്നെ ബന്ധപ്പെടൂ!",
-        caption: rawText
+        caption: content
       };
     }
 
-    // പ്രൊഡക്റ്റ് ഫോട്ടോ
+    // സൗജന്യ AI ഫോട്ടോ ലിങ്ക്
     const safeProduct = encodeURIComponent(clean(product) + " commercial product packaging advertising photo 4k");
-    const imageUrl = `https://image.pollinations.ai/prompt/${safeProduct}?width=700&height=500&nologo=true`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${safeProduct}?width=700&height=500&nologo=true&seed=${Date.now()}`;
 
     res.json({
       poster: posterData,
@@ -104,7 +106,7 @@ Respond ONLY with a valid raw JSON object (no markdown, no backticks, no extra t
 
   } catch (err) {
     console.error("Generation error:", err?.message || err);
-    res.status(500).json({ error: err?.message || "Could not generate poster. Try again." });
+    res.status(500).json({ error: err?.message || "Could not generate advertisement. Please try again." });
   }
 });
 
